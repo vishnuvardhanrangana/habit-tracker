@@ -1,0 +1,121 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Outfit', 'Inter', sans-serif;
+  
+  --shadow-premium: 0 4px 20px -2px rgba(0, 0, 0, 0.02), 0 2px 8px -1px rgba(0, 0, 0, 0.02);
+  --shadow-premium-hover: 0 10px 25px -4px rgba(22, 163, 74, 0.04), 0 4px 12px -2px rgba(0, 0, 0, 0.02);
+  --shadow-premium-dark: 0 4px 20px -2px rgba(0, 0, 0, 0.2), 0 2px 8px -1px rgba(0, 0, 0, 0.1);
+  --shadow-premium-dark-hover: 0 10px 25px -4px rgba(34, 197, 94, 0.1), 0 4px 12px -2px rgba(0, 0, 0, 0.2);
+
+  --color-primary: var(--color-primary);
+  --color-primary-dark: var(--color-primary-dark);
+  --color-primary-light: var(--color-primary-light);
+  --color-primary-very-light: var(--color-primary-very-light);
+}
+
+:root {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --text-primary: #17201a;
+  --text-secondary: #64748b;
+  --border-color: #e2e8f0;
+  
+  --color-primary: #16a34a;
+  --color-primary-dark: #15803d;
+  --color-primary-light: #dcfce7;
+  --color-primary-very-light: #f0fdf4;
+  
+  color-scheme: light dark;
+}
+
+.dark {
+  --bg-primary: #0a0f0d;
+  --bg-secondary: #121815;
+  --text-primary: #f3f5f4;
+  --text-secondary: #8e9e95;
+  --border-color: #202b25;
+  
+  --color-primary: #22c55e;
+  --color-primary-dark: #16a34a;
+  --color-primary-light: #14532d;
+  --color-primary-very-light: #064e3b;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  @apply antialiased;
+}
+
+/* Page fade-up transitions */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  opacity: 0;
+  animation: fadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Stagger entrance delays */
+.stagger-1 { animation-delay: 0ms; }
+.stagger-2 { animation-delay: 50ms; }
+.stagger-3 { animation-delay: 100ms; }
+.stagger-4 { animation-delay: 150ms; }
+.stagger-5 { animation-delay: 200ms; }
+
+/* Custom Scrollbar styles */
+@supports (scrollbar-color: auto) {
+  * {
+    scrollbar-color: var(--border-color) transparent;
+    scrollbar-width: thin;
+  }
+}
+
+@supports not (scrollbar-color: auto) {
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* Gentle Floating Animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Floating Up Animation */
+@keyframes floatUp {
+  0% { transform: translateY(100px) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.8; }
+  100% { transform: translateY(-400px) rotate(20deg); opacity: 0; }
+}
+.animate-float-up {
+  animation: floatUp 8s ease-in-out infinite;
+}
+
+
