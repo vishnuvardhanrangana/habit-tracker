@@ -25,8 +25,8 @@ const Register = () => {
       return;
     }
 
-    if (password.length < 8) {
-      showToast('Password must be at least 8 characters long', 'warning');
+    if (password.length < 6) {
+      showToast('Password must be at least 6 characters long', 'warning');
       return;
     }
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, CheckSquare, Calendar, BarChart3, Settings, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Calendar, BarChart3, Settings, LogOut, Menu, X, Heart, Cake } from 'lucide-react';
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -10,12 +10,18 @@ const Layout = ({ children }) => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const isStupid = user?.email === 'stupid';
+
   const menuItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'Habits', path: '/habits', icon: CheckSquare },
     { name: 'Calendar', path: '/calendar', icon: Calendar },
     { name: 'Analytics', path: '/analytics', icon: BarChart3 },
     { name: 'Settings', path: '/settings', icon: Settings },
+    ...(isStupid ? [
+      { name: 'Between Us', path: '/between-us', icon: Heart },
+      { name: 'Birthday', path: '/birthday', icon: Cake },
+    ] : [])
   ];
 
   const handleLogout = () => {
@@ -54,14 +60,18 @@ const Layout = ({ children }) => {
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
-            const isStupid = user?.email === 'stupid';
+            const isBetweenUs = item.path === '/between-us';
 
             const activeClass = isActive
               ? (isStupid
-                  ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 pl-4'
+                  ? (isBetweenUs
+                      ? 'bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 pl-4 shadow-[0_0_10px_rgba(244,63,94,0.15)] border border-rose-500/10'
+                      : 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 pl-4')
                   : 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-l-4 border-emerald-600 pl-3 rounded-l-none')
               : (isStupid
-                  ? 'text-slate-600 dark:text-slate-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/10 hover:text-emerald-700 dark:hover:text-emerald-300 pl-4'
+                  ? (isBetweenUs
+                      ? 'text-slate-600 dark:text-slate-400 hover:bg-rose-50/50 dark:hover:bg-rose-950/10 hover:text-rose-700 dark:hover:text-rose-300 pl-4 hover:shadow-[0_0_10px_rgba(244,63,94,0.12)] border border-transparent hover:border-rose-500/10'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/10 hover:text-emerald-700 dark:hover:text-emerald-300 pl-4')
                   : 'text-slate-600 dark:text-slate-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/10 hover:text-emerald-700 dark:hover:text-emerald-300 border-l-4 border-transparent pl-3 rounded-l-none');
 
             return (
@@ -73,11 +83,11 @@ const Layout = ({ children }) => {
                 {isStupid && isActive && (
                   <motion.div
                     layoutId="activeIndicator"
-                    className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-600 rounded-r z-10"
+                    className={`absolute left-0 top-0 bottom-0 w-1 ${isBetweenUs ? 'bg-rose-500' : 'bg-emerald-600'} rounded-r z-10`}
                     transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                   />
                 )}
-                <Icon className={`w-5 h-5 transition-transform duration-200 group-hover:scale-105 ${isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500 group-hover:text-emerald-600'}`} />
+                <Icon className={`w-5 h-5 transition-transform duration-200 group-hover:scale-105 ${isActive ? (isBetweenUs ? 'text-rose-500' : 'text-emerald-600 dark:text-emerald-400') : (`text-slate-400 dark:text-slate-500 ${isBetweenUs ? 'group-hover:text-rose-500' : 'group-hover:text-emerald-600'}`)}`} />
                 <span>{item.name}</span>
               </Link>
             );
@@ -163,14 +173,18 @@ const Layout = ({ children }) => {
                 {menuItems.map((item) => {
                   const isActive = location.pathname === item.path;
                   const Icon = item.icon;
-                  const isStupid = user?.email === 'stupid';
+                  const isBetweenUs = item.path === '/between-us';
 
                   const activeClass = isActive
                     ? (isStupid
-                        ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 pl-4'
+                        ? (isBetweenUs
+                            ? 'bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 pl-4 shadow-[0_0_10px_rgba(244,63,94,0.15)] border border-rose-500/10'
+                            : 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 pl-4')
                         : 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-l-4 border-emerald-600 pl-3 rounded-l-none')
                     : (isStupid
-                        ? 'text-slate-600 dark:text-slate-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/10 hover:text-emerald-700 pl-4'
+                        ? (isBetweenUs
+                            ? 'text-slate-600 dark:text-slate-400 hover:bg-rose-50/50 dark:hover:bg-rose-950/10 hover:text-rose-700 pl-4 hover:shadow-[0_0_10px_rgba(244,63,94,0.12)] border border-transparent hover:border-rose-500/10'
+                            : 'text-slate-600 dark:text-slate-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/10 hover:text-emerald-700 pl-4')
                         : 'text-slate-600 dark:text-slate-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/10 hover:text-emerald-700 border-l-4 border-transparent pl-3 rounded-l-none');
 
                   return (
@@ -183,11 +197,11 @@ const Layout = ({ children }) => {
                       {isStupid && isActive && (
                         <motion.div
                           layoutId="activeIndicatorMobile"
-                          className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-600 rounded-r z-10"
+                          className={`absolute left-0 top-0 bottom-0 w-1 ${isBetweenUs ? 'bg-rose-500' : 'bg-emerald-600'} rounded-r z-10`}
                           transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                         />
                       )}
-                      <Icon className={`w-5 h-5 ${isActive ? 'text-emerald-600' : 'text-slate-400'}`} />
+                      <Icon className={`w-5 h-5 ${isActive ? (isBetweenUs ? 'text-rose-500' : 'text-emerald-600') : (`text-slate-400 ${isBetweenUs ? 'group-hover:text-rose-500' : ''}`)}`} />
                       <span>{item.name}</span>
                     </Link>
                   );

@@ -5,6 +5,11 @@ import { useAuth } from '../context/AuthContext';
 import { ChevronLeft, ChevronRight, Check, X, Calendar as CalendarIcon, Award, Sparkles } from 'lucide-react';
 import { ICONS } from '../components/HabitModal';
 import { motion, AnimatePresence } from 'framer-motion';
+import Antigravity from '../components/Antigravity';
+import TimeSinceMeeting from '../components/stupid/TimeSinceMeeting';
+import stupidConfig from '../components/stupid/stupidConfig';
+import { useEasterEggs } from '../context/EasterEggContext';
+import { getNextBirthday, getBirthdayCountdownDetails, isBirthdayToday } from '../utils/birthdayHelper';
 
 // Framer Motion animated digits for countdown timer
 const AnimatedNumber = ({ value }) => {
@@ -29,9 +34,9 @@ const AnimatedNumber = ({ value }) => {
 // Premium Countdown Card at the top of the Calendar page for stupid
 const BirthdayCountdown = ({ days, isToday }) => {
   return (
-    <div className="relative bg-white dark:bg-slate-900 border border-emerald-500/20 rounded-3xl p-6 md:p-8 shadow-premium dark:shadow-premium-dark overflow-hidden transition-all duration-300">
-      {/* Soft green glow */}
-      <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+    <div className="relative bg-white/40 dark:bg-slate-900/35 border border-purple-500/25 rounded-3xl p-6 md:p-8 shadow-premium dark:shadow-premium-dark overflow-hidden transition-all duration-300 backdrop-blur-md">
+      {/* Soft purple glow */}
+      <div className="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/15 rounded-full filter blur-2xl pointer-events-none" />
 
       {/* Floating particles inside the countdown */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -49,7 +54,7 @@ const BirthdayCountdown = ({ days, isToday }) => {
               repeat: Infinity,
               delay: Math.random() * 2
             }}
-            className="absolute left-[50%] bottom-[10%] w-1.5 h-1.5 rounded-full bg-emerald-400/25"
+            className="absolute left-[50%] bottom-[10%] w-1.5 h-1.5 rounded-full bg-purple-400/25"
           />
         ))}
       </div>
@@ -59,7 +64,7 @@ const BirthdayCountdown = ({ days, isToday }) => {
           <motion.div
             animate={{ rotate: [0, -5, 5, 0] }}
             transition={{ duration: 3, repeat: Infinity }}
-            className="w-14 h-14 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-450 rounded-2xl flex items-center justify-center text-3xl shadow-inner"
+            className="w-14 h-14 bg-purple-50 dark:bg-purple-950/20 text-purple-650 dark:text-purple-400 rounded-2xl flex items-center justify-center text-3xl shadow-inner border border-purple-500/10"
           >
             🎂
           </motion.div>
@@ -67,29 +72,29 @@ const BirthdayCountdown = ({ days, isToday }) => {
             <h2 className="text-lg font-black text-slate-850 dark:text-white tracking-tight uppercase">
               Stupid's Birthday
             </h2>
-            <p className="text-emerald-650 dark:text-emerald-455 font-bold text-xs mt-1">
+            <p className="text-purple-650 dark:text-purple-400 font-extrabold text-xs mt-1">
               {isToday ? "Today is your day!" : "Advance Happy Birthday, Stupid! 🎉"}
             </p>
           </div>
         </div>
 
         {isToday ? (
-          <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight animate-bounce">
+          <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500 tracking-tight animate-bounce">
             🎂 HAPPY BIRTHDAY, STUPID! 🎉
           </h3>
         ) : (
-          <div className="flex items-baseline space-x-1.5 bg-slate-50 dark:bg-slate-950/50 px-5 py-2.5 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-inner">
+          <div className="flex items-baseline space-x-1.5 bg-slate-950/40 dark:bg-slate-950/50 px-5 py-2.5 border border-purple-500/15 rounded-2xl shadow-inner">
             <div className="flex items-center">
               {String(days).split('').map((char, index) => (
                 <AnimatedNumber key={index} value={char} />
               ))}
             </div>
-            <span className="text-xs font-bold text-slate-455 dark:text-slate-500 uppercase tracking-widest pl-1">
+            <span className="text-[10px] font-black text-purple-650 dark:text-purple-400 uppercase tracking-widest pl-1.5">
               Days to Go
             </span>
           </div>
         )}
-      </div>
+    </div>
     </div>
   );
 };
@@ -159,50 +164,36 @@ const Calendar = () => {
   const { showToast } = useToast();
   const { user } = useAuth();
   const isStupid = user?.email === 'stupid';
+  const { unlockEgg } = useEasterEggs();
 
   const [habits, setHabits] = useState([]);
   const [completionsMap, setCompletionsMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [showBdayModal, setShowBdayModal] = useState(false);
 
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, isToday: false });
-
-  const getNextBirthday = () => {
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    let targetDate = new Date(currentYear, 8, 28, 0, 0, 0, 0); // Sept 28
-
-    if (today > targetDate) {
-      targetDate = new Date(currentYear + 1, 8, 28, 0, 0, 0, 0);
+  // Track unique calendar visit days for EGG 07
+  useEffect(() => {
+    if (!isStupid) return;
+    try {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const visitedJson = localStorage.getItem('stupid_calendar_visited_dates');
+      let visitedDates = visitedJson ? JSON.parse(visitedJson) : [];
+      if (!Array.isArray(visitedDates)) {
+        visitedDates = [];
+      }
+      if (!visitedDates.includes(todayStr)) {
+        visitedDates.push(todayStr);
+        localStorage.setItem('stupid_calendar_visited_dates', JSON.stringify(visitedDates));
+      }
+      if (visitedDates.length >= 5) {
+        unlockEgg('calendar-explorer');
+      }
+    } catch (e) {
+      console.error('Failed to update calendar visited dates:', e);
     }
-    return targetDate;
-  };
+  }, [isStupid, unlockEgg]);
 
-  const getBirthdayCountdownDetails = () => {
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentDateVal = today.getDate();
-
-    const isToday = currentMonth === 8 && currentDateVal === 28;
-
-    const target = getNextBirthday();
-    const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const diffTime = target.getTime() - todayDateOnly.getTime();
-    const daysToGo = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-
-    const totalWindow = 60;
-    const daysPassed = Math.max(0, Math.min(totalWindow, totalWindow - daysToGo));
-    const progressPercent = Math.round((daysPassed / totalWindow) * 100);
-
-    return {
-      daysToGo: isToday ? 0 : daysToGo,
-      isToday,
-      daysPassed,
-      totalWindow,
-      progressPercent,
-      targetYear: target.getFullYear()
-    };
-  };
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, isToday: false });
 
   useEffect(() => {
     if (user?.email !== 'stupid') return;
@@ -363,6 +354,52 @@ const Calendar = () => {
     );
   };
 
+  const getSelectedDateMessage = (details) => {
+    if (!details) return "Every day has a little story. 🌙";
+    
+    const d = details.date;
+    const isTodayDate = isToday(d);
+
+    // Check if May 6, 2021
+    if (d.getFullYear() === 2021 && d.getMonth() === 4 && d.getDate() === 6) {
+      return "Some dates aren't just dates. They're memories. ❤️";
+    }
+
+    // Check if September 28
+    if (d.getMonth() === 8 && d.getDate() === 28) {
+      return "🎂 STUPID'S DAY. The world got a little more interesting on this day. Happy Birthday, Stupid! ❤️";
+    }
+
+    if (isTodayDate) {
+      const todayMsgs = [
+        "You're here. That's enough. ❤️",
+        "Keep going, Stupid.",
+        "One day at a time.",
+        "Make today count.",
+        "Idiot is rooting for you. ❤️"
+      ];
+      const idx = new Date().getMinutes() % todayMsgs.length;
+      return todayMsgs[idx];
+    }
+
+    const rate = details.rate;
+    const total = details.totalCount;
+
+    if (total === 0) {
+      return "No habits scheduled for this day. Rest up! 💤";
+    }
+
+    if (rate === 1) {
+      return "STUPID ABSOLUTELY COOKED TODAY 🔥 100% completed.";
+    }
+
+    if (rate > 0) {
+      return "Look at you, Stupid. 🔥";
+    }
+
+    return "It's okay, Stupid. Tomorrow is another chance. 🌱";
+  };
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
 
@@ -387,7 +424,7 @@ const Calendar = () => {
       ]);
 
       if (habitsRes.data.success) {
-        setHabits(habitsRes.data.data.filter(h => h.active));
+        setHabits(habitsRes.data.data);
       }
       if (rangeRes.data.success) {
         setCompletionsMap(rangeRes.data.data || {});
@@ -404,6 +441,7 @@ const Calendar = () => {
     fetchCalendarData();
     setSelectedDate(null);
   }, [currentDate]);
+
 
   const handlePrevMonth = () => {
     setCurrentDate(new Date(year, month - 1, 1));
@@ -440,13 +478,39 @@ const Calendar = () => {
     return completionsMap[key] || [];
   };
 
+  const getExpectedHabitsForDate = (habitsList, date) => {
+    if (!date) return [];
+    const targetDate = new Date(date);
+    targetDate.setHours(0, 0, 0, 0);
+
+    return habitsList.filter(habit => {
+      if (habit.createdAt) {
+        const created = new Date(habit.createdAt);
+        created.setHours(0, 0, 0, 0);
+        if (created > targetDate) {
+          return false;
+        }
+      }
+      if (!habit.active && habit.updatedAt) {
+        const archived = new Date(habit.updatedAt);
+        archived.setHours(0, 0, 0, 0);
+        if (targetDate > archived) {
+          return false;
+        }
+      }
+      return true;
+    });
+  };
+
   const getDayDetails = (date) => {
     if (!date) return null;
     const dateStr = getLocalDateString(date);
     const completedIds = getDayCompletions(date);
-    const totalCount = habits.length;
 
-    const list = habits.map(habit => ({
+    const expectedHabits = getExpectedHabitsForDate(habits, date);
+    const totalCount = expectedHabits.length;
+
+    const list = expectedHabits.map(habit => ({
       ...habit,
       completed: completedIds.includes(habit.id)
     }));
@@ -494,11 +558,47 @@ const Calendar = () => {
   const activeSelectedDetails = selectedDate ? getDayDetails(selectedDate) : null;
 
   return (
-    <div className="space-y-6 animate-fade-up">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Completion Calendar</h1>
-        <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">Visualize your monthly check-ins and review daily status.</p>
-      </div>
+    <div className="space-y-6 relative min-h-screen pb-12">
+      {/* 1. Canvas Interactive Particles Background Layer */}
+      {isStupid && (
+        <Antigravity
+          count={220}
+          magnetRadius={6}
+          ringRadius={7}
+          waveSpeed={0.35}
+          waveAmplitude={1}
+          particleSize={1.3}
+          lerpSpeed={0.05}
+          color="#5227FF"
+          autoAnimate
+          particleVariance={1}
+          rotationSpeed={0}
+          depthFactor={1}
+          pulseSpeed={3}
+          particleShape="capsule"
+          fieldStrength={8}
+        />
+      )}
+      {/* 2. Contrast Overlay to separate canvas and text content */}
+      {isStupid && (
+        <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/80 to-white/70 dark:from-slate-950/90 dark:via-slate-950/80 dark:to-slate-950/70 pointer-events-none z-0" />
+      )}
+
+      <motion.div
+        initial={isStupid ? { opacity: 0, y: -20 } : {}}
+        animate={isStupid ? { opacity: 1, y: 0 } : {}}
+        transition={isStupid ? { duration: 0.5, ease: "easeOut" } : {}}
+        className="relative z-10"
+      >
+        <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+          {isStupid ? "📅 Stupid's Habit Calendar" : "Completion Calendar"}
+        </h1>
+        <p className="text-slate-550 dark:text-slate-400 text-sm mt-0.5 font-medium">
+          {isStupid 
+            ? "Every day has a little story." 
+            : "Visualize your monthly check-ins and review daily status."}
+        </p>
+      </motion.div>
 
       {isStupid && (
         <BirthdayCountdown 
@@ -508,9 +608,14 @@ const Calendar = () => {
         />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-10">
         {/* Calendar Grid Card */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-premium dark:shadow-premium-dark flex flex-col justify-between transition-colors duration-300">
+        <motion.div
+          initial={isStupid ? { opacity: 0, scale: 0.97 } : {}}
+          animate={isStupid ? { opacity: 1, scale: 1 } : {}}
+          transition={isStupid ? { duration: 0.55, ease: "easeOut" } : {}}
+          className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-premium dark:shadow-premium-dark flex flex-col justify-between transition-colors duration-300"
+        >
           {/* Calendar Controller Header */}
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-slate-880 dark:text-white">
@@ -559,8 +664,10 @@ const Calendar = () => {
                 const isFutureCell = isFuture(cell);
                 const isTodayCell = isToday(cell);
                 const isBdayCell = cell.getMonth() === 8 && cell.getDate() === 28;
+                const isMay6Cell = cell.getFullYear() === 2021 && cell.getMonth() === 4 && cell.getDate() === 6;
                 const completedIds = getDayCompletions(cell);
-                const totalCount = habits.length;
+                const expectedHabits = getExpectedHabitsForDate(habits, cell);
+                const totalCount = expectedHabits.length;
 
                 let cellStyle = 'bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-900 text-slate-750 dark:text-slate-300 cursor-pointer hover:bg-emerald-50/20 hover:border-emerald-250 dark:hover:bg-slate-900';
 
@@ -568,6 +675,8 @@ const Calendar = () => {
                   cellStyle = 'bg-slate-50/30 dark:bg-slate-950/10 border border-transparent text-slate-300 dark:text-slate-700 pointer-events-none';
                 } else if (isStupid && isBdayCell) {
                   cellStyle = 'bg-gradient-to-tr from-amber-400 via-emerald-600 to-pink-500 text-white font-extrabold shadow-lg shadow-emerald-500/20 relative overflow-hidden';
+                } else if (isStupid && isMay6Cell) {
+                  cellStyle = 'bg-rose-50 dark:bg-rose-955/20 text-rose-600 dark:text-rose-450 font-extrabold border border-rose-200 dark:border-rose-900/40 cursor-pointer shadow-sm relative overflow-hidden';
                 } else if (totalCount > 0) {
                   const rate = completedIds.length / totalCount;
                   if (rate === 1) {
@@ -577,18 +686,35 @@ const Calendar = () => {
                   }
                 }
 
-                const isCellSelected = selectedDate && cell.getDate() === selectedDate.getDate() && cell.getMonth() === selectedDate.getMonth();
+                const isCellSelected = selectedDate && cell.getDate() === selectedDate.getDate() && cell.getMonth() === selectedDate.getMonth() && cell.getFullYear() === selectedDate.getFullYear();
                 const selectedRing = isCellSelected ? 'ring-4 ring-offset-2 dark:ring-offset-slate-900 ring-emerald-600 dark:ring-emerald-500 scale-[1.03]' : '';
 
                 // Week-by-week entry delays
                 const weekIndex = Math.floor(idx / 7);
                 const cellDelay = isStupid ? weekIndex * 0.05 : 0;
 
+                const hoverTitle = isStupid && isMay6Cell 
+                  ? "❤️ A memory" 
+                  : isStupid && isBdayCell 
+                    ? "🎂 Stupid's day" 
+                    : isStupid && isTodayCell 
+                      ? "✨ Today's story" 
+                      : (isStupid && totalCount > 0 && completedIds.length === totalCount) 
+                        ? "🔥 Stupid cooked" 
+                        : "";
+
                 return (
                   <motion.button
                     key={`day-${cell.getDate()}`}
-                    onClick={() => !isFutureCell && setSelectedDate(cell)}
+                    onClick={() => {
+                      if (isFutureCell) return;
+                      setSelectedDate(cell);
+                      if (isStupid && isMay6Cell) {
+                        unlockEgg('may-6-memory');
+                      }
+                    }}
                     disabled={isFutureCell}
+                    title={window.innerWidth >= 768 ? hoverTitle : undefined}
                     initial={isStupid ? { opacity: 0, scale: 0.92, y: 5 } : {}}
                     animate={isStupid ? { opacity: 1, scale: 1, y: 0 } : {}}
                     transition={isStupid ? { duration: 0.25, delay: cellDelay, ease: "easeOut" } : {}}
@@ -628,14 +754,27 @@ const Calendar = () => {
                           className="absolute inset-0 rounded-xl border border-white/60 pointer-events-none"
                         />
                       </div>
+                    ) : isStupid && isMay6Cell ? (
+                      <div className="flex flex-col items-center justify-center relative w-full h-full">
+                        <span className="text-sm font-black text-rose-550 dark:text-rose-400">❤️ 6</span>
+                        <span className="text-[8px] font-black uppercase tracking-tighter text-rose-450 opacity-80">Memory</span>
+                      </div>
                     ) : (
                       <span className="text-sm font-bold">{cell.getDate()}</span>
                     )}
                     
-                    {isTodayCell && !isBdayCell && (
-                      <span className={`absolute bottom-1.5 w-1.5 h-1.5 rounded-full ${
+                    {isTodayCell && !isBdayCell && !isMay6Cell && (
+                      <span className={`absolute bottom-1 w-1.5 h-1.5 rounded-full ${
                         completedIds.length / totalCount === 1 ? 'bg-white' : 'bg-emerald-600 dark:bg-emerald-500'
                       }`}></span>
+                    )}
+
+                    {isStupid && isTodayCell && !isBdayCell && !isMay6Cell && (
+                      <span className="absolute bottom-0.5 text-[8px] font-black uppercase text-emerald-600 dark:text-emerald-450 tracking-tighter">Today</span>
+                    )}
+
+                    {isStupid && totalCount > 0 && completedIds.length === totalCount && !isBdayCell && !isMay6Cell && (
+                      <span className="absolute top-1 right-1 text-[9px]">✨</span>
                     )}
 
                     {/* Today's pulsing highlight frame */}
@@ -651,26 +790,55 @@ const Calendar = () => {
               })}
             </motion.div>
           </AnimatePresence>
-        </div>
+        </motion.div>
 
         {/* Selected Date Details Panel */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-premium dark:shadow-premium-dark flex flex-col justify-between transition-colors duration-300">
+        <div className="space-y-6">
+          <motion.div
+          initial={isStupid ? { opacity: 0, x: 15 } : {}}
+          animate={isStupid ? { opacity: 1, x: 0 } : {}}
+          transition={isStupid ? { duration: 0.55, ease: "easeOut" } : {}}
+          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-premium dark:shadow-premium-dark flex flex-col justify-between transition-colors duration-300"
+        >
           {!selectedDate ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-slate-400 dark:text-slate-500">
               <CalendarIcon className="w-12 h-12 mb-4 text-emerald-555" />
               <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm">No Date Selected</h3>
-              <p className="text-xs text-slate-450 mt-1">Select a past or today's date on the calendar to view completions.</p>
+              <p className="text-xs text-slate-455 mt-1">Select a past or today's date on the calendar to view completions.</p>
             </div>
           ) : (
             <div className="flex-1 flex flex-col justify-between h-full space-y-6">
               {/* Header details */}
               <div>
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-450 uppercase tracking-wider block mb-1">
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-455 uppercase tracking-wider block mb-1">
                   Day Summary
                 </span>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                   {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                 </h3>
+
+                {isStupid && (
+                  <motion.p
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    key={selectedDate.getTime()}
+                    className="text-xs font-bold text-purple-650 dark:text-purple-400 mt-1.5 italic"
+                  >
+                    "{getSelectedDateMessage(activeSelectedDetails)}"
+                  </motion.p>
+                )}
+
+                {isStupid && selectedDate.getFullYear() === 2021 && selectedDate.getMonth() === 4 && selectedDate.getDate() === 6 && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4 mt-3 text-center space-y-1 select-none"
+                  >
+                    <h4 className="text-xs font-black text-rose-650 dark:text-rose-450 uppercase tracking-wider">May 6, 2021 ❤️</h4>
+                    <p className="text-[11px] font-bold text-slate-800 dark:text-slate-200">"Some dates aren't just dates."</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">"The last day Idiot and Stupid were together."</p>
+                  </motion.div>
+                )}
 
                 {/* Progress details */}
                 <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-855/50 rounded-2xl p-4 mt-4">
@@ -747,8 +915,13 @@ const Calendar = () => {
               )}
             </div>
           )}
-        </div>
+        </motion.div>
+
+        {isStupid && (
+          <TimeSinceMeeting />
+        )}
       </div>
+    </div>
 
       {/* Birthday sections for 'stupid' account */}
       {isStupid && (
@@ -872,6 +1045,7 @@ const Calendar = () => {
         isOpen={showBdayModal} 
         onClose={() => setShowBdayModal(false)} 
       />
+
     </div>
   );
 };

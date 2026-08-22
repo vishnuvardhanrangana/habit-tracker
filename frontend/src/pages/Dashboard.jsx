@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
+import StupidDashboard from '../components/StupidDashboard';
+import { useEasterEggs } from '../context/EasterEggContext';
 import HabitModal, { ICONS } from '../components/HabitModal';
 import { Plus, Check, Calendar, BarChart3, ChevronRight, Award, Flame, CheckCircle, TrendingUp, CheckSquare, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -72,7 +74,33 @@ const Dashboard = () => {
   const [milestoneCelebration, setMilestoneCelebration] = useState(null);
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, isToday: false });
 
-  // Update live timer for stupid user
+  const { unlockEgg } = useEasterEggs();
+
+  // Trigger Easter eggs based on confirmed dashboard data (EGG 02, 03, 04, 05)
+  useEffect(() => {
+    if (user?.email !== 'stupid' || !dashboardData) return;
+
+    // EGG 02 — Perfect Day
+    if (dashboardData.progressToday === 1 && dashboardData.totalToday > 0) {
+      unlockEgg('perfect-day');
+    }
+
+    // EGG 03 — 7-Day Streak
+    if (dashboardData.currentStreak >= 7) {
+      unlockEgg('streak-7');
+    }
+
+    // EGG 04 — 30-Day Streak
+    if (dashboardData.currentStreak >= 30) {
+      unlockEgg('streak-30');
+    }
+
+    // EGG 05 — Birthday Check
+    const today = new Date();
+    if (today.getMonth() === 8 && today.getDate() === 28) {
+      unlockEgg('birthday');
+    }
+  }, [dashboardData, user, unlockEgg]);
   useEffect(() => {
     if (user?.email !== 'stupid') return;
 
@@ -182,17 +210,30 @@ const Dashboard = () => {
     const isCompleted = habit.completedToday;
     const url = `/habits/${habit.id}/complete`;
     
+    // For habits with targetCount > 1, clicking increments completions Count, capping or toggling when completed.
+    const currentCount = habit.completedCount || 0;
+    const target = habit.targetCount || 1;
+    let nextCount = isCompleted ? target - 1 : currentCount + 1;
+    if (nextCount < 0) nextCount = 0;
+    
+    const nextCompletedToday = nextCount >= target;
+
     // Optimistic UI updates
     const updatedHabits = habits.map(h => {
       if (h.id === habit.id) {
-        const nextCompletedToday = !isCompleted;
-        const nextCurrentStreak = nextCompletedToday ? h.currentStreak + 1 : Math.max(0, h.currentStreak - 1);
-        const nextBestStreak = Math.max(h.bestStreak, nextCurrentStreak);
+        const prevStreak = h.currentStreak;
+        let nextStreak = h.currentStreak;
+        if (nextCompletedToday && !isCompleted) {
+          nextStreak = prevStreak + 1;
+        } else if (!nextCompletedToday && isCompleted) {
+          nextStreak = Math.max(0, prevStreak - 1);
+        }
         return {
           ...h,
           completedToday: nextCompletedToday,
-          currentStreak: nextCurrentStreak,
-          bestStreak: nextBestStreak
+          completedCount: nextCount,
+          currentStreak: nextStreak,
+          bestStreak: Math.max(h.bestStreak, nextStreak)
         };
       }
       return h;
@@ -202,11 +243,11 @@ const Dashboard = () => {
     // Optimistically update dashboard stats
     if (dashboardData) {
       const diff = isCompleted ? -1 : 1;
-      const nextCompletedToday = Math.max(0, dashboardData.completedToday + diff);
-      const nextProgressToday = dashboardData.totalToday > 0 ? nextCompletedToday / dashboardData.totalToday : 0;
+      const nextCompletedTodayCount = Math.max(0, dashboardData.completedToday + diff);
+      const nextProgressToday = dashboardData.totalToday > 0 ? nextCompletedTodayCount / dashboardData.totalToday : 0;
       setDashboardData({
         ...dashboardData,
-        completedToday: nextCompletedToday,
+        completedToday: nextCompletedTodayCount,
         progressToday: nextProgressToday,
         totalCompletions: Math.max(0, dashboardData.totalCompletions + diff)
       });
@@ -247,12 +288,19 @@ const Dashboard = () => {
           const completedCount = updatedHabits.filter(h => h.active && h.completedToday).length;
           if (activeCount === completedCount && activeCount > 0) {
             showToast("Perfect! All habits completed today 🎉", "success");
+            if (user?.email === 'stupid') {
+              unlockEgg('perfect-day');
+            }
           }
         }
       }
       fetchData();
     } catch (err) {
-      console.error("Failed to toggle completion:", err);
+      console.error("Failed to toggle completion error object:", err);
+      if (err.response) {
+        console.error("Error response status:", err.response.status);
+        console.error("Error response data:", JSON.stringify(err.response.data));
+      }
       showToast("Failed to save completion status. Syncing back...", "error");
       fetchData();
     }
@@ -309,6 +357,21 @@ const Dashboard = () => {
   })) || [];
 
   const isAllCompleted = progressOffset >= 1 && dashboardData?.totalToday > 0;
+
+  if (user?.email === 'stupid' && dashboardData) {
+    return (
+      <StupidDashboard
+        dashboardData={dashboardData}
+        habits={habits}
+        timeLeft={timeLeft}
+        setModalOpen={setModalOpen}
+        handleToggleComplete={handleToggleComplete}
+        sparklingHabitId={sparklingHabitId}
+        milestoneCelebration={milestoneCelebration}
+        setMilestoneCelebration={setMilestoneCelebration}
+      />
+    );
+  }
 
   return (
     <div className="space-y-8 animate-fade-up">
@@ -560,6 +623,13 @@ const Dashboard = () => {
                           {habit.name}
                         </h4>
                         
+                        {/* Target progress if > 1 */}
+                        {habit.targetCount > 1 && (
+                          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+                            Target: {habit.completedCount || 0} / {habit.targetCount}
+                          </div>
+                        )}
+
                         {/* Streak count */}
                         {habit.currentStreak > 0 ? (
                           <div className="flex items-center text-xs font-semibold text-emerald-600 mt-0.5">
