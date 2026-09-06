@@ -19,6 +19,7 @@ import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import BetweenUs from './pages/BetweenUs';
 import BirthdayExperience from './pages/BirthdayExperience';
+import MissingYou from './pages/MissingYou';
 
 function App() {
   return (
@@ -99,6 +100,16 @@ function App() {
                     <ProtectedRoute>
                       <Layout>
                         <BirthdayExperience />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/missing-you"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <MissingYou />
                       </Layout>
                     </ProtectedRoute>
                   }

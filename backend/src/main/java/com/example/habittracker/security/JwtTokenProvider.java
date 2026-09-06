@@ -44,12 +44,14 @@ public class JwtTokenProvider {
         return claims.getSubject();
     }
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(JwtTokenProvider.class);
+
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
-            System.err.println("Invalid JWT Token: " + e.getMessage());
+            log.warn("Invalid JWT Token: {}", e.getMessage());
         }
         return false;
     }

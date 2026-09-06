@@ -65,4 +65,18 @@ public class GlobalExceptionHandler {
         ApiResponse<Void> response = new ApiResponse<>(false, "Invalid username or password");
         return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
     }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAccessDenied(org.springframework.security.access.AccessDeniedException ex) {
+        log.warn("Access denied: {}", ex.getMessage());
+        ApiResponse<Void> response = new ApiResponse<>(false, "Access denied: you do not have permission to access this resource");
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException ex) {
+        log.warn("Database integrity violation: {}", ex.getMessage());
+        ApiResponse<Void> response = new ApiResponse<>(false, "Database constraint violation or duplicate record");
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    }
 }

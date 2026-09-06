@@ -1,15 +1,19 @@
 package com.example.habittracker.dto;
 
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 public class HabitRequest {
 
     @NotBlank(message = "Habit name is required")
+    @Size(max = 100, message = "Habit name must not exceed 100 characters")
     private String name;
 
+    @Size(max = 1000, message = "Description must not exceed 1000 characters")
     private String description;
 
     @NotBlank(message = "Category is required")
@@ -17,16 +21,20 @@ public class HabitRequest {
     private String category;
 
     @NotBlank(message = "Frequency is required")
+    @Pattern(regexp = "^(Daily|Weekly|Custom)$", message = "Frequency must be Daily, Weekly, or Custom")
     private String frequency; // Daily, Weekly, Custom
 
     @NotNull(message = "Target count is required")
     @Min(value = 1, message = "Target count must be at least 1")
+    @Max(value = 100, message = "Target count must not exceed 100")
     private Integer targetCount;
 
     @NotBlank(message = "Color is required")
+    @Size(max = 50, message = "Color must not exceed 50 characters")
     private String color;
 
     @NotBlank(message = "Icon is required")
+    @Size(max = 50, message = "Icon must not exceed 50 characters")
     private String icon;
 
     public HabitRequest() {}

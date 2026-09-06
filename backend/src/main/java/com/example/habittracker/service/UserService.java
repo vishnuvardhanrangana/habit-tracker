@@ -53,16 +53,17 @@ public class UserService {
     }
 
     public AuthResponse authenticateUser(LoginRequest request) {
+        String email = request.getEmail() != null ? request.getEmail().trim().toLowerCase() : "";
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
+                        email,
                         request.getPassword()
                 )
         );
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = tokenProvider.generateToken(request.getEmail());
-        User user = userRepository.findByEmail(request.getEmail())
+        String jwt = tokenProvider.generateToken(email);
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         return new AuthResponse(jwt, mapToDto(user));
@@ -86,7 +87,13 @@ public class UserService {
     public UserDto updateProfile(ProfileUpdateRequest request) {
         User user = getCurrentUserEntity();
 
-        if (request.getFullName() != null && !request.getFullName().trim().isEmpty()) {
+        if (request.getFullName() != null) {
+            if (request.getFullName().trim().isEmpty()) {
+                throw new BadRequestException("Full name cannot be empty");
+            }
+            if (request.getFullName().trim().length() > 100) {
+                throw new BadRequestException("Full name must not exceed 100 characters");
+            }
             user.setFullName(request.getFullName().trim());
         }
 
@@ -96,6 +103,9 @@ public class UserService {
             }
             if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
                 throw new BadRequestException("Current password is incorrect");
+            }
+            if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+                throw new BadRequestException("New password cannot be the same as the current password");
             }
             if (request.getNewPassword().length() < 6) {
                 throw new BadRequestException("New password must be at least 6 characters long");

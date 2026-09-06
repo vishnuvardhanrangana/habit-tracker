@@ -89,11 +89,19 @@ public class HabitService {
                 .orElseThrow(() -> new ResourceNotFoundException("Habit not found with id " + id));
 
         if (archive && habit.isActive()) {
-            activePeriodRepository.findFirstByHabitAndEndDateIsNullOrderByStartDateDesc(habit)
-                    .ifPresent(period -> {
-                        period.setEndDate(LocalDate.now());
-                        activePeriodRepository.save(period);
-                    });
+            Optional<HabitActivePeriod> openPeriod = activePeriodRepository.findFirstByHabitAndEndDateIsNullOrderByStartDateDesc(habit);
+            if (openPeriod.isPresent()) {
+                HabitActivePeriod period = openPeriod.get();
+                period.setEndDate(LocalDate.now());
+                activePeriodRepository.save(period);
+            } else {
+                HabitActivePeriod period = new HabitActivePeriod();
+                period.setHabit(habit);
+                LocalDate start = habit.getCreatedAt() != null ? habit.getCreatedAt().toLocalDate() : LocalDate.now();
+                period.setStartDate(start);
+                period.setEndDate(LocalDate.now());
+                activePeriodRepository.save(period);
+            }
             habit.setActive(false);
         } else if (!archive && !habit.isActive()) {
             HabitActivePeriod activePeriod = new HabitActivePeriod();
@@ -190,7 +198,8 @@ public class HabitService {
         Optional<HabitCompletion> existingCompletion = completionRepository.findByHabitAndCompletionDate(habit, date);
         if (existingCompletion.isPresent()) {
             HabitCompletion completion = existingCompletion.get();
-            completion.setCompletionCount(completion.getCompletionCount() + 1);
+            int currentCount = completion.getCompletionCount() == null || completion.getCompletionCount() < 1 ? 1 : completion.getCompletionCount();
+            completion.setCompletionCount(currentCount + 1);
             completionRepository.save(completion);
             return mapToResponse(habit, LocalDate.now());
         }
@@ -213,8 +222,9 @@ public class HabitService {
 
         Optional<HabitCompletion> existingCompletion = completionRepository.findByHabitAndCompletionDate(habit, date);
         existingCompletion.ifPresent(completion -> {
-            if (completion.getCompletionCount() > 1) {
-                completion.setCompletionCount(completion.getCompletionCount() - 1);
+            int currentCount = completion.getCompletionCount() == null || completion.getCompletionCount() < 1 ? 1 : completion.getCompletionCount();
+            if (currentCount > 1) {
+                completion.setCompletionCount(currentCount - 1);
                 completionRepository.save(completion);
             } else {
                 completionRepository.delete(completion);
@@ -260,11 +270,20 @@ public class HabitService {
         response.setCompletedCount(summary.currentCount);
         response.setPeriodProgress(summary.currentProgress);
         return response;
-        return response;
     }
 
     public static StreakInfo calculateStreaks(List<LocalDate> completedDates, LocalDate today) {
         if (completedDates == null || completedDates.isEmpty()) {
+            return new StreakInfo(0, 0);
+        }
+
+        List<LocalDate> sortedDates = completedDates.stream()
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+
+        if (sortedDates.isEmpty()) {
             return new StreakInfo(0, 0);
         }
 
@@ -273,7 +292,7 @@ public class HabitService {
         int tempStreak = 0;
         LocalDate prevDate = null;
 
-        for (LocalDate date : completedDates) {
+        for (LocalDate date : sortedDates) {
             if (prevDate == null) {
                 tempStreak = 1;
             } else {
@@ -294,12 +313,12 @@ public class HabitService {
             bestStreak = tempStreak;
         }
 
-        LocalDate lastDate = completedDates.get(completedDates.size() - 1);
+        LocalDate lastDate = sortedDates.get(sortedDates.size() - 1);
         if (lastDate.equals(today) || lastDate.equals(today.minusDays(1))) {
             int currentCount = 1;
             LocalDate cursor = lastDate;
-            for (int i = completedDates.size() - 2; i >= 0; i--) {
-                LocalDate d = completedDates.get(i);
+            for (int i = sortedDates.size() - 2; i >= 0; i--) {
+                LocalDate d = sortedDates.get(i);
                 long diff = ChronoUnit.DAYS.between(d, cursor);
                 if (diff == 1) {
                     currentCount++;

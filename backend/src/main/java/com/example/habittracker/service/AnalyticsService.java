@@ -70,9 +70,10 @@ public class AnalyticsService {
     private List<ChartPoint> dailyChart(List<Habit> habits, LocalDate start, LocalDate end, boolean weekdayLabels) {
         List<ChartPoint> chart = new ArrayList<>();
         for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
-            List<Habit> expected = habits.stream().filter(habit -> metricsService.isActiveOn(habit, date)).collect(Collectors.toList());
+            final LocalDate currentDate = date;
+            List<Habit> expected = habits.stream().filter(habit -> metricsService.isActiveOn(habit, currentDate)).collect(Collectors.toList());
             double rate = expected.isEmpty() ? 0 : expected.stream()
-                    .mapToDouble(habit -> metricsService.progressForDate(habit, date))
+                    .mapToDouble(habit -> metricsService.progressForDate(habit, currentDate))
                     .average().orElse(0);
             String label = weekdayLabels
                     ? date.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
