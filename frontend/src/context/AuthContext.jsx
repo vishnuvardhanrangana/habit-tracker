@@ -41,11 +41,24 @@ export const AuthProvider = ({ children }) => {
         setUser(userData);
         return { success: true };
       } else {
-        setError(res.data.message || 'Login failed');
-        return { success: false, message: res.data.message };
+        const msg = res.data.message || 'Login failed';
+        setError(msg);
+        return { success: false, message: msg };
       }
     } catch (err) {
-      const msg = err.response?.data?.message || 'Invalid email or password';
+      console.error('Authentication error details:', err);
+      let msg = 'Unable to connect to the authentication server.';
+      if (err.response) {
+        if (err.response.status === 401) {
+          msg = err.response.data?.message || 'Invalid email or password';
+        } else if (err.response.status >= 500) {
+          msg = 'Unable to connect to the server. Please try again.';
+        } else {
+          msg = err.response.data?.message || 'Unable to sign in. Please verify your credentials.';
+        }
+      } else if (err.request) {
+        msg = 'Unable to connect to the server. Please try again.';
+      }
       setError(msg);
       return { success: false, message: msg };
     }

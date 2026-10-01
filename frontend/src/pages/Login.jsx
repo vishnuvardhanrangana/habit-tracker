@@ -84,7 +84,7 @@ const Login = () => {
       }
     } else {
       setIsSubmitting(false);
-      showToast(result.message || 'Invalid username or password', 'error');
+      showToast(result.message || 'Invalid email or password', 'error');
     }
   };
 

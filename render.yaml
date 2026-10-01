@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: habit-tracker-backend
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    plan: free
+    region: oregon
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://frontend-psi-rosy-64.vercel.app,http://localhost:5173,http://localhost:5175
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: 3306
+      - key: DB_NAME
+        value: habit_tracker
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_SSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: STUPID_PASSWORD
+        value: stupid@0928
+      - key: IDIOT_PASSWORD
+        value: idiot@0928
+    healthCheckPath: /api/health

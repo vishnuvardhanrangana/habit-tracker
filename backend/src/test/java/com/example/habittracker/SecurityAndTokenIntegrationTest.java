@@ -43,4 +43,11 @@ public class SecurityAndTokenIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false));
     }
+
+    @Test
+    void healthEndpointIsPubliclyAccessible() throws Exception {
+        mockMvc.perform(get("/api/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"));
+    }
 }
